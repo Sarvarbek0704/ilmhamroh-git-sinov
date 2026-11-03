@@ -1,0 +1,189 @@
+{
+  "YangiVazifa": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "matn": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "bajarildi": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "matn"
+    ],
+    "additionalProperties": false
+  },
+  "ToliqVazifa": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "matn": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "bajarildi": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "matn",
+      "bajarildi"
+    ],
+    "additionalProperties": false
+  },
+  "VazifaOzgarishi": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "matn": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "bajarildi": {
+        "type": "boolean"
+      }
+    },
+    "additionalProperties": false
+  },
+  "Toplam": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "vazifalar": {
+        "maxItems": 1000,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "matn": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "bajarildi": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "matn",
+            "bajarildi"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "vazifalar"
+    ],
+    "additionalProperties": false
+  },
+  "Eksport": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "default": {
+      "format": "csv",
+      "ajratgich": ","
+    },
+    "oneOf": [
+      {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "const": "csv"
+          },
+          "ajratgich": {
+            "default": ",",
+            "type": "string",
+            "enum": [
+              ",",
+              ";"
+            ]
+          }
+        },
+        "required": [
+          "format"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "const": "json"
+          }
+        },
+        "required": [
+          "format"
+        ],
+        "additionalProperties": false
+      }
+    ]
+  },
+  "RoyxatQuery": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "bajarildi": {
+        "type": "string"
+      },
+      "teg": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "q": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "sort": {
+        "type": "string"
+      },
+      "fields": {
+        "type": "string"
+      },
+      "limit": {
+        "type": "string",
+        "pattern": "^\\d{1,6}$"
+      },
+      "offset": {
+        "type": "string",
+        "pattern": "^\\d{1,6}$"
+      },
+      "cursor": {
+        "type": "string",
+        "maxLength": 1000
+      },
+      "jami": {
+        "type": "string"
+      },
+      "dan": {
+        "type": "string"
+      },
+      "gacha": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false
+  }
+}

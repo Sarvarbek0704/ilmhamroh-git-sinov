@@ -1,0 +1,154 @@
+{
+  "GET /v1/vazifalar": {
+    "parametrlar": [
+      "query:bajarildi",
+      "query:cursor",
+      "query:dan",
+      "query:fields",
+      "query:gacha",
+      "query:jami",
+      "query:limit",
+      "query:offset",
+      "query:q",
+      "query:sort",
+      "query:teg"
+    ],
+    "tana": null,
+    "javoblar": [
+      "200"
+    ]
+  },
+  "POST /v1/vazifalar": {
+    "parametrlar": [],
+    "tana": {
+      "matn": {
+        "tur": "\"string\"",
+        "majburiy": true
+      },
+      "bajarildi": {
+        "tur": "\"boolean\"",
+        "majburiy": false
+      }
+    },
+    "javoblar": [
+      "201"
+    ]
+  },
+  "PUT /v1/vazifalar": {
+    "parametrlar": [],
+    "tana": {
+      "vazifalar": {
+        "tur": "\"array\"",
+        "majburiy": true
+      }
+    },
+    "javoblar": [
+      "200"
+    ]
+  },
+  "POST /v1/vazifalar/toplam": {
+    "parametrlar": [],
+    "tana": {
+      "vazifalar": {
+        "tur": "\"array\"",
+        "majburiy": true
+      }
+    },
+    "javoblar": [
+      "201"
+    ]
+  },
+  "GET /v1/vazifalar/oqim": {
+    "parametrlar": [],
+    "tana": null,
+    "javoblar": [
+      "200"
+    ]
+  },
+  "GET /v1/vazifalar/{id}": {
+    "parametrlar": [
+      "path:id!"
+    ],
+    "tana": null,
+    "javoblar": [
+      "200"
+    ]
+  },
+  "PUT /v1/vazifalar/{id}": {
+    "parametrlar": [
+      "path:id!"
+    ],
+    "tana": {
+      "matn": {
+        "tur": "\"string\"",
+        "majburiy": true
+      },
+      "bajarildi": {
+        "tur": "\"boolean\"",
+        "majburiy": true
+      }
+    },
+    "javoblar": [
+      "200"
+    ]
+  },
+  "PATCH /v1/vazifalar/{id}": {
+    "parametrlar": [
+      "path:id!"
+    ],
+    "tana": {
+      "matn": {
+        "tur": "\"string\"",
+        "majburiy": false
+      },
+      "bajarildi": {
+        "tur": "\"boolean\"",
+        "majburiy": false
+      }
+    },
+    "javoblar": [
+      "200"
+    ]
+  },
+  "DELETE /v1/vazifalar/{id}": {
+    "parametrlar": [
+      "path:id!"
+    ],
+    "tana": null,
+    "javoblar": [
+      "204"
+    ]
+  },
+  "GET /v1/teglar": {
+    "parametrlar": [],
+    "tana": null,
+    "javoblar": [
+      "200"
+    ]
+  },
+  "POST /v1/eksportlar": {
+    "parametrlar": [],
+    "tana": null,
+    "javoblar": [
+      "202"
+    ]
+  },
+  "GET /v1/eksportlar/{id}": {
+    "parametrlar": [
+      "path:id!"
+    ],
+    "tana": null,
+    "javoblar": [
+      "200"
+    ]
+  },
+  "GET /v1/eksportlar/{id}/fayl": {
+    "parametrlar": [
+      "path:id!"
+    ],
+    "tana": null,
+    "javoblar": [
+      "200"
+    ]
+  }
+}

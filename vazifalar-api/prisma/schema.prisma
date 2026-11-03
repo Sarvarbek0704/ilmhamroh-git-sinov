@@ -1,0 +1,488 @@
+// schema.prisma — 27-qism (holat 20+): `prisma db pull` (introspection) natijasi qo'lda tartiblangan.
+// SXEMA MANBAI — SQL migratsiyalar (prisma/migrations; 26-qism sql/ 001–014 + 27-qism 101–106 — baseline 0_init). Bu fayl Prisma Client
+// uchun model tavsifi: CHECK, EXCLUDE, trigger, funksiya, RLS, view, materialized view, generated ustunni Prisma sxemada ifodalab bo'lmaydi
+// (db pull ogohlantirishlari — natijalar/tajriba/t20-prisma-pull.txt). Shuning uchun yangi migratsiya: `prisma migrate dev --create-only`
+// → SQL'ni qo'lda tekshirish/to'ldirish → qo'llash (#36).
+// Nomlash: modellar va maydonlar — Prisma/TS uslubida (Vazifa, egasiId), jadval/ustun nomlari bazada o'zgarmaydi (@@map, @map).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  previewFeatures     = ["partialIndexes"]
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Foydalanuvchi {
+  id                    BigInt    @id @default(autoincrement())
+  email                 String
+  /// 107/108 (holat 38, expand-contract): `ism` → `toliq_ism`. Prisma'da maydon nomi toliqIsm, bazada toliq_ism
+  toliqIsm              String    @map("toliq_ism")
+  yaratilganVaqt        DateTime  @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  /// Ro'yxat versiyasi (API RoyxatNatija.versiya): ombor har yozuvda +1
+  vazifalarVersiyasi    BigInt    @default(0) @map("vazifalar_versiyasi")
+  /// Interfeys sozlamalari (101): til, mavzu, bildirishnoma — CHECK bazada
+  sozlamalar            Json      @default("{}")
+  /// 109 (28-qism #04): argon2id PHC satri; NULL — parolsiz hisob (OIDC, Telegram, OTP)
+  parolHash             String?   @map("parol_hash")
+  /// 114 (#12): email tasdiqlangan vaqt; NULL — tasdiqlanmagan (parol bilan kira olmaydi)
+  emailTasdiqlanganVaqt DateTime? @map("email_tasdiqlangan_vaqt") @db.Timestamptz(6)
+  /// 115 (#13): tasdiqlangan telefon (E.164), noyob
+  telefon               String?   @unique(map: "foydalanuvchilar_telefon_key")
+  /// 119 (#20): RBAC — foydalanuvchi | admin (CHECK bazada); bloklangan hisob — kira olmaydi
+  rol                   String    @default("foydalanuvchi")
+  bloklanganVaqt        DateTime? @map("bloklangan_vaqt") @db.Timestamptz(6)
+
+  izohlar             Izoh[]
+  teglar              Teg[]
+  vazifalar           Vazifa[]
+  authHodisalar       AuthHodisa[]
+  sessiyalar          Sessiya[]
+  birMartalikTokenlar BirMartalikToken[]
+  otpKodlar           OtpKod[]
+  tashqiHisoblar      TashqiHisob[]
+  mfaTotp             MfaTotp?
+  zaxiraKodlar        ZaxiraKod[]
+  passkeylar          Passkey[]
+  apiKalitlar         ApiKalit[]
+  fayllar             Fayl[]
+  bildirishnomalar    Bildirishnoma[]
+  telegramUlanish     TelegramUlanish?
+  pushObunalar        PushObuna[]
+  webhookObunalari    WebhookObuna[]
+  aiSarf              AiSarf[]
+
+  @@index([sozlamalar(ops: JsonbPathOps)], type: Gin, map: "foydalanuvchilar_sozlamalar_idx")
+  @@map("foydalanuvchilar")
+}
+
+model Vazifa {
+  id              BigInt                   @id @default(autoincrement())
+  egasiId         BigInt                   @map("egasi_id")
+  /// 1–100 belgi, chetida bo'shliqsiz (CHECK); faol vazifalar orasida registrga befarq noyob (EXCLUDE … DEFERRABLE, 014)
+  matn            String
+  bajarildi       Boolean                  @default(false)
+  yaratilganVaqt  DateTime                 @default(dbgenerated("date_trunc('milliseconds'::text, now())")) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  ustuvorlik      Ustuvorlik               @default(orta)
+  muddat          DateTime?                @db.Timestamptz(6)
+  bajarilganVaqt  DateTime?                @map("bajarilgan_vaqt") @db.Timestamptz(6)
+  otaId           BigInt?                  @map("ota_id")
+  /// counter cache — trigger yangilaydi (009)
+  izohlarSoni     Int                      @default(0) @map("izohlar_soni")
+  /// trigger qo'yadi (010/013)
+  yangilanganVaqt DateTime                 @default(dbgenerated("date_trunc('milliseconds'::text, now())")) @map("yangilangan_vaqt") @db.Timestamptz(6)
+  ochirilganVaqt  DateTime?                @map("ochirilgan_vaqt") @db.Timestamptz(6)
+  /// optimistik qulf — har UPDATE'da trigger +1 qiladi (011)
+  versiya         Int                      @default(1)
+  /// berilmasa BEFORE INSERT trigger egasining oxiriga qo'yadi (013). @default(dbgenerated()) — "qiymatni baza beradi": create()da ixtiyoriy,
+  /// migrate dev uni o'zgartirmaydi (Int? bo'lsa — har safar DROP NOT NULL yozmoqchi bo'ldi, t36-migrate-1.txt)
+  tartib          Int                      @default(dbgenerated())
+  /// generated tsvector (104) — Prisma turini bilmaydi (Unsupported — client'da yo'q). db pull uni @default(dbgenerated("to_tsvector…")) deb
+  /// o'qigan edi — NOTO'G'RI (GENERATED, DEFAULT emas): migrate dev "DROP DEFAULT" yozmoqchi bo'ldi. Bo'sh dbgenerated() — Prisma tegmaydi
+  qidiruv         Unsupported("tsvector")? @default(dbgenerated())
+
+  egasi           Foydalanuvchi   @relation(fields: [egasiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ota             Vazifa?         @relation("KichikVazifalar", fields: [otaId, egasiId], references: [id, egasiId], onDelete: Cascade, onUpdate: NoAction, map: "vazifalar_ota_id_fkey")
+  kichikVazifalar Vazifa[]        @relation("KichikVazifalar")
+  izohlar         Izoh[]
+  vazifaTeglari   VazifaTegi[]
+  ilovalar        VazifaIlovasi[]
+
+  @@unique([id, egasiId], map: "vazifalar_id_egasi_id_key")
+  @@index([egasiId], map: "vazifalar_egasi_id_idx")
+  @@index([otaId], map: "vazifalar_ota_id_idx", where: raw("(ota_id IS NOT NULL)"))
+  @@index([egasiId, yaratilganVaqt(sort: Desc), id(sort: Desc)], map: "vazifalar_royxat_idx", where: raw("(ochirilgan_vaqt IS NULL)"))
+  @@index([egasiId, tartib, id], map: "vazifalar_tartib_idx", where: raw("(ochirilgan_vaqt IS NULL)"))
+  @@index([qidiruv], type: Gin, map: "vazifalar_qidiruv_idx")
+  @@map("vazifalar")
+}
+
+model Teg {
+  id      BigInt @id @default(autoincrement())
+  egasiId BigInt @map("egasi_id")
+  /// "#" bilan, kichik harfda (CHECK) — trigger matndan yozadi (006/009)
+  nom     String
+
+  egasi         Foydalanuvchi @relation(fields: [egasiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vazifaTeglari VazifaTegi[]
+
+  @@unique([egasiId, nom], map: "teglar_egasi_id_nom_key")
+  @@map("teglar")
+}
+
+model VazifaTegi {
+  vazifaId BigInt @map("vazifa_id")
+  tegId    BigInt @map("teg_id")
+
+  teg    Teg    @relation(fields: [tegId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vazifa Vazifa @relation(fields: [vazifaId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([vazifaId, tegId])
+  @@index([tegId], map: "vazifa_teglari_teg_id_idx")
+  @@map("vazifa_teglari")
+}
+
+model Izoh {
+  id             BigInt   @id @default(autoincrement())
+  vazifaId       BigInt   @map("vazifa_id")
+  muallifId      BigInt?  @map("muallif_id")
+  matn           String
+  yaratilganVaqt DateTime @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+
+  muallif Foydalanuvchi? @relation(fields: [muallifId], references: [id], onUpdate: NoAction)
+  vazifa  Vazifa         @relation(fields: [vazifaId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([muallifId], map: "izohlar_muallif_id_idx")
+  @@index([vazifaId, yaratilganVaqt], map: "izohlar_vazifa_id_yaratilgan_vaqt_idx")
+  @@map("izohlar")
+}
+
+/// O'zgarishlar tarixi (010) — FK'siz, trigger yozadi
+model VazifaTarixi {
+  id       BigInt   @id @default(autoincrement())
+  vazifaId BigInt   @map("vazifa_id")
+  amal     String
+  eski     Json?
+  yangi    Json?
+  kimId    BigInt?  @map("kim_id")
+  vaqt     DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([vazifaId, vaqt], map: "vazifa_tarixi_vazifa_id_vaqt_idx")
+  @@map("vazifa_tarixi")
+}
+
+/// 28-qism #05 (111): auth jurnali — kirish, ro'yxat, xato urinishlar. Sir yozilmaydi
+model AuthHodisa {
+  id              BigInt         @id @default(autoincrement())
+  foydalanuvchiId BigInt?        @map("foydalanuvchi_id")
+  tur             String
+  ip              String?        @db.Inet
+  userAgent       String?        @map("user_agent")
+  tafsilot        Json           @default("{}")
+  vaqt            DateTime       @default(now()) @db.Timestamptz(6)
+  foydalanuvchi   Foydalanuvchi? @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([foydalanuvchiId, vaqt(sort: Desc)], map: "auth_hodisalar_foydalanuvchi_idx")
+  @@index([ip, vaqt(sort: Desc)], map: "auth_hodisalar_ip_idx")
+  @@map("auth_hodisalar")
+}
+
+/// 28-qism #07 (112): server sessiyalari — token_hash = sha256(cookie tokeni). Auth kodi pg bilan ishlaydi; model — drift bo'lmasligi uchun
+model Sessiya {
+  id              BigInt                  @id @default(autoincrement())
+  foydalanuvchiId BigInt                  @map("foydalanuvchi_id")
+  tokenHash       Bytes                   @unique(map: "sessiyalar_token_hash_key") @map("token_hash")
+  yaratilganVaqt  DateTime                @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  oxirgiFaollik   DateTime                @default(now()) @map("oxirgi_faollik") @db.Timestamptz(6)
+  tugashVaqti     DateTime                @map("tugash_vaqti") @db.Timestamptz(6)
+  bekorVaqti      DateTime?               @map("bekor_vaqti") @db.Timestamptz(6)
+  ip              String?                 @db.Inet
+  userAgent       String?                 @map("user_agent")
+  /// 113 (#11): "meni eslab qol" va shu sessiyaning idle chegarasi
+  eslabQol        Boolean                 @default(true) @map("eslab_qol")
+  idleMuddat      Unsupported("interval") @default(dbgenerated("'7 days'::interval")) @map("idle_muddat")
+  foydalanuvchi   Foydalanuvchi           @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([foydalanuvchiId], map: "sessiyalar_foydalanuvchi_faol_idx", where: raw("(bekor_vaqti IS NULL)"))
+  @@map("sessiyalar")
+}
+
+/// 28-qism #12 (114): email tasdiqlash va parol tiklash tokenlari (sha256)
+model BirMartalikToken {
+  id              BigInt        @id @default(autoincrement())
+  foydalanuvchiId BigInt        @map("foydalanuvchi_id")
+  maqsad          String
+  tokenHash       Bytes         @unique(map: "bir_martalik_tokenlar_token_hash_key") @map("token_hash")
+  yaratilganVaqt  DateTime      @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  tugashVaqti     DateTime      @map("tugash_vaqti") @db.Timestamptz(6)
+  ishlatilganVaqt DateTime?     @map("ishlatilgan_vaqt") @db.Timestamptz(6)
+  ip              String?       @db.Inet
+  foydalanuvchi   Foydalanuvchi @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([foydalanuvchiId, maqsad, yaratilganVaqt(sort: Desc)], map: "bir_martalik_tokenlar_foydalanuvchi_idx")
+  @@map("bir_martalik_tokenlar")
+}
+
+/// 28-qism #13 (115): SMS kodlar — kod_hmac = HMAC-SHA256(OTP_SIRI)
+model OtpKod {
+  id              BigInt        @id @default(autoincrement())
+  foydalanuvchiId BigInt        @map("foydalanuvchi_id")
+  maqsad          String
+  telefon         String
+  kodHmac         Bytes         @map("kod_hmac")
+  yaratilganVaqt  DateTime      @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  tugashVaqti     DateTime      @map("tugash_vaqti") @db.Timestamptz(6)
+  urinishlar      Int           @default(0)
+  ishlatilganVaqt DateTime?     @map("ishlatilgan_vaqt") @db.Timestamptz(6)
+  ip              String?       @db.Inet
+  foydalanuvchi   Foydalanuvchi @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([telefon, yaratilganVaqt(sort: Desc)], map: "otp_kodlar_telefon_idx")
+  @@map("otp_kodlar")
+}
+
+/// 28-qism #15 (117): tashqi kimliklar (Google OIDC, Telegram) — (provayder, subyekt) noyob
+model TashqiHisob {
+  id              BigInt        @id @default(autoincrement())
+  foydalanuvchiId BigInt        @map("foydalanuvchi_id")
+  provayder       String
+  subyekt         String
+  email           String?
+  yaratilganVaqt  DateTime      @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  oxirgiKirish    DateTime?     @map("oxirgi_kirish") @db.Timestamptz(6)
+  foydalanuvchi   Foydalanuvchi @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provayder, subyekt], map: "tashqi_hisoblar_provayder_subyekt_key")
+  @@unique([foydalanuvchiId, provayder], map: "tashqi_hisoblar_foydalanuvchi_provayder_key")
+  @@map("tashqi_hisoblar")
+}
+
+/// 28-qism #19 (118): TOTP siri (AES-256-GCM shifrlangan), zaxira kodlar (HMAC), passkeys (ochiq kalit)
+model MfaTotp {
+  foydalanuvchiId BigInt        @id @map("foydalanuvchi_id")
+  siriShifr       Bytes         @map("siri_shifr")
+  yoqilganVaqt    DateTime?     @map("yoqilgan_vaqt") @db.Timestamptz(6)
+  oxirgiQadam     BigInt        @default(0) @map("oxirgi_qadam")
+  yaratilganVaqt  DateTime      @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  foydalanuvchi   Foydalanuvchi @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("mfa_totp")
+}
+
+model ZaxiraKod {
+  id              BigInt        @id @default(autoincrement())
+  foydalanuvchiId BigInt        @map("foydalanuvchi_id")
+  kodHmac         Bytes         @unique(map: "zaxira_kodlar_kod_hmac_key") @map("kod_hmac")
+  ishlatilganVaqt DateTime?     @map("ishlatilgan_vaqt") @db.Timestamptz(6)
+  foydalanuvchi   Foydalanuvchi @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([foydalanuvchiId], map: "zaxira_kodlar_foydalanuvchi_idx")
+  @@map("zaxira_kodlar")
+}
+
+model Passkey {
+  id              BigInt        @id @default(autoincrement())
+  foydalanuvchiId BigInt        @map("foydalanuvchi_id")
+  credentialId    String        @unique(map: "passkeylar_credential_id_key") @map("credential_id")
+  ochiqKalit      Bytes         @map("ochiq_kalit")
+  hisoblagich     BigInt        @default(0)
+  transports      String[]      @default([])
+  nom             String        @default("Passkey")
+  yaratilganVaqt  DateTime      @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  oxirgiIshlatish DateTime?     @map("oxirgi_ishlatish") @db.Timestamptz(6)
+  foydalanuvchi   Foydalanuvchi @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([foydalanuvchiId], map: "passkeylar_foydalanuvchi_idx")
+  @@map("passkeylar")
+}
+
+/// 28-qism #22 (121): API kalitlari — prefiks ochiq, sir faqat HMAC
+model ApiKalit {
+  id              BigInt        @id @default(autoincrement())
+  foydalanuvchiId BigInt        @map("foydalanuvchi_id")
+  prefiks         String        @unique(map: "api_kalitlar_prefiks_key")
+  kalitHmac       Bytes         @map("kalit_hmac")
+  nom             String
+  ruxsatlar       String[]
+  yaratilganVaqt  DateTime      @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  tugashVaqti     DateTime?     @map("tugash_vaqti") @db.Timestamptz(6)
+  oxirgiIshlatish DateTime?     @map("oxirgi_ishlatish") @db.Timestamptz(6)
+  bekorVaqti      DateTime?     @map("bekor_vaqti") @db.Timestamptz(6)
+  foydalanuvchi   Foydalanuvchi @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([foydalanuvchiId], map: "api_kalitlar_foydalanuvchi_idx")
+  @@map("api_kalitlar")
+}
+
+/// 28-qism #26 (122): tezlik cheklovi hisoblagichlari — UNLOGGED jadval (Prisma sxemada ifodalanmaydi, SQL migratsiyada)
+model TezlikChegarasi {
+  kalit  String   @id(map: "tezlik_chegaralari_pkey")
+  son    Int
+  tugash DateTime @db.Timestamptz(6)
+
+  @@index([tugash], map: "tezlik_chegaralari_tugash_idx")
+  @@map("tezlik_chegaralari")
+}
+
+/// 29-qism #06 (201): S3 dagi obyekt metama'lumoti (CHECK, RLS — SQL migratsiyada)
+model Fayl {
+  id               BigInt          @id @default(autoincrement())
+  egasiId          BigInt          @map("egasi_id")
+  kalit            String          @unique(map: "fayllar_kalit_key")
+  mime             String
+  hajm             BigInt
+  sha256           Bytes?
+  holat            String          @default("kutilmoqda")
+  yaratilganVaqt   DateTime        @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  tasdiqlanganVaqt DateTime?       @map("tasdiqlangan_vaqt") @db.Timestamptz(6)
+  egasi            Foydalanuvchi   @relation(fields: [egasiId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fayllar_egasi_id_fkey")
+  ilovalar         VazifaIlovasi[]
+
+  @@unique([egasiId, sha256], map: "fayllar_egasi_id_sha256_key")
+  @@index([yaratilganVaqt], map: "fayllar_yaratilgan_vaqt_idx")
+  @@map("fayllar")
+}
+
+/// 29-qism #06 (201): fayl qaysi vazifaga, qanday nom bilan biriktirilgan
+model VazifaIlovasi {
+  vazifaId      BigInt   @map("vazifa_id")
+  faylId        BigInt   @map("fayl_id")
+  aslNom        String   @map("asl_nom")
+  qoshilganVaqt DateTime @default(now()) @map("qoshilgan_vaqt") @db.Timestamptz(6)
+  fayl          Fayl     @relation(fields: [faylId], references: [id], onUpdate: NoAction, map: "vazifa_ilovalari_fayl_id_fkey")
+  vazifa        Vazifa   @relation(fields: [vazifaId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "vazifa_ilovalari_vazifa_id_fkey")
+
+  @@id([vazifaId, faylId], map: "vazifa_ilovalari_pkey")
+  @@index([faylId], map: "vazifa_ilovalari_fayl_id_idx")
+  @@map("vazifa_ilovalari")
+}
+
+/// 29-qism #18 (202): ilova ichidagi bildirishnoma va kanallarga yuborish manbasi (dedup, RLS — SQL migratsiyada)
+model Bildirishnoma {
+  id              BigInt        @id(map: "bildirishnomalar_pkey") @default(autoincrement())
+  foydalanuvchiId BigInt        @map("foydalanuvchi_id")
+  tur             String
+  sarlavha        String
+  matn            String
+  havola          String?
+  dedupKalit      String?       @map("dedup_kalit")
+  oqilganVaqt     DateTime?     @map("oqilgan_vaqt") @db.Timestamptz(6)
+  yaratilganVaqt  DateTime      @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  foydalanuvchi   Foydalanuvchi @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "bildirishnomalar_foydalanuvchi_id_fkey")
+  yetkazishlar    Yetkazish[]
+
+  @@unique([foydalanuvchiId, dedupKalit], map: "bildirishnomalar_dedup_kalit_key")
+  @@index([foydalanuvchiId], map: "bildirishnomalar_oqilmagan_idx", where: raw("(oqilgan_vaqt IS NULL)"))
+  @@index([foydalanuvchiId, yaratilganVaqt(sort: Desc), id(sort: Desc)], map: "bildirishnomalar_royxat_idx")
+  @@map("bildirishnomalar")
+}
+
+/// 29-qism #18 (202): har kanal bo'yicha yetkazish holati
+model Yetkazish {
+  bildirishnomaId BigInt        @map("bildirishnoma_id")
+  kanal           String
+  holat           String        @default("navbatda")
+  urinishlar      Int           @default(0)
+  oxirgiXato      String?       @map("oxirgi_xato")
+  yangilanganVaqt DateTime      @default(now()) @map("yangilangan_vaqt") @db.Timestamptz(6)
+  bildirishnoma   Bildirishnoma @relation(fields: [bildirishnomaId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "yetkazishlar_bildirishnoma_id_fkey")
+
+  @@id([bildirishnomaId, kanal], map: "yetkazishlar_pkey")
+  @@index([kanal, yangilanganVaqt], map: "yetkazishlar_vaqt_idx", where: raw("(holat = 'yuborildi'::text)"))
+  @@map("yetkazishlar")
+}
+
+/// 29-qism #18/#20 (202): foydalanuvchi ↔ Telegram chat (bot /start deep link)
+model TelegramUlanish {
+  foydalanuvchiId BigInt        @id(map: "telegram_ulanishlar_pkey") @map("foydalanuvchi_id")
+  chatId          BigInt        @unique(map: "telegram_ulanishlar_chat_id_key") @map("chat_id")
+  faol            Boolean       @default(true)
+  ulanganVaqt     DateTime      @default(now()) @map("ulangan_vaqt") @db.Timestamptz(6)
+  foydalanuvchi   Foydalanuvchi @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "telegram_ulanishlar_foydalanuvchi_id_fkey")
+
+  @@map("telegram_ulanishlar")
+}
+
+/// 29-qism #17 (202): brauzer Web Push obunasi
+model PushObuna {
+  id              BigInt        @id(map: "push_obunalar_pkey") @default(autoincrement())
+  foydalanuvchiId BigInt        @map("foydalanuvchi_id")
+  endpoint        String        @unique(map: "push_obunalar_endpoint_key")
+  p256dh          String
+  auth            String
+  yaratilganVaqt  DateTime      @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  foydalanuvchi   Foydalanuvchi @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "push_obunalar_foydalanuvchi_id_fkey")
+
+  @@index([foydalanuvchiId], map: "push_obunalar_foydalanuvchi_id_idx")
+  @@map("push_obunalar")
+}
+
+/// 29-qism #35 (203): chiquvchi webhook obunasi (25-qism global WEBHOOK_URL o'rniga)
+model WebhookObuna {
+  id              BigInt             @id @default(autoincrement())
+  foydalanuvchiId BigInt             @map("foydalanuvchi_id")
+  url             String
+  sir             String
+  hodisalar       String[]           @default(dbgenerated("'{vazifa.yaratildi,vazifa.yangilandi,vazifa.bajarildi,vazifa.ochirildi}'::text[]"))
+  faol            Boolean            @default(true)
+  ketmaKetXato    Int                @default(0) @map("ketma_ket_xato")
+  yaratilganVaqt  DateTime           @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  foydalanuvchi   Foydalanuvchi      @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  yetkazishlar    WebhookYetkazish[]
+
+  @@index([foydalanuvchiId], map: "webhook_obunalari_foydalanuvchi_idx", where: raw("faol"))
+  @@map("webhook_obunalari")
+}
+
+/// 29-qism #35 (203): har (obuna, hodisa) yetkazish holati; 'tashlandi' — DLQ
+model WebhookYetkazish {
+  id             BigInt       @id @default(autoincrement())
+  obunaId        BigInt       @map("obuna_id")
+  hodisaId       String       @map("hodisa_id")
+  tur            String
+  tana           Json
+  holat          String       @default("navbatda")
+  urinishlar     Int          @default(0)
+  keyingiUrinish DateTime     @default(now()) @map("keyingi_urinish") @db.Timestamptz(6)
+  oxirgiStatus   Int?         @map("oxirgi_status")
+  oxirgiXato     String?      @map("oxirgi_xato")
+  yaratilganVaqt DateTime     @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  yuborilganVaqt DateTime?    @map("yuborilgan_vaqt") @db.Timestamptz(6)
+  obuna          WebhookObuna @relation(fields: [obunaId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([obunaId, hodisaId], map: "webhook_yetkazishlar_hodisa_key")
+  @@index([keyingiUrinish], map: "webhook_yetkazishlar_navbat_idx", where: raw("(holat = 'navbatda'::text)"))
+  @@map("webhook_yetkazishlar")
+}
+
+/// 29-qism #50 (204): transactional outbox — vazifa o'zgarishi bilan bir tranzaksiyada; relay tarqatadi
+model Outbox {
+  id              BigInt    @id @default(autoincrement())
+  hodisaId        String    @unique @default(dbgenerated("gen_random_uuid()")) @map("hodisa_id") @db.Uuid
+  tur             String
+  foydalanuvchiId BigInt    @map("foydalanuvchi_id")
+  malumot         Json
+  yaratilganVaqt  DateTime  @default(now()) @map("yaratilgan_vaqt") @db.Timestamptz(6)
+  tarqatilganVaqt DateTime? @map("tarqatilgan_vaqt") @db.Timestamptz(6)
+  urinishlar      Int       @default(0)
+
+  @@index([id], map: "outbox_navbat_idx", where: raw("(tarqatilgan_vaqt IS NULL)"))
+  @@map("outbox")
+}
+
+enum Ustuvorlik {
+  past
+  orta
+  yuqori
+
+  @@map("ustuvorlik")
+}
+
+/// 31-qism #19 (sql/304): AI kunlik kvotasi — so'rovlar va tokenlar (kun — APP_TZ). Kod SQL bilan ishlaydi (atomik upsert + chegara)
+model AiSarf {
+  foydalanuvchiId BigInt        @map("foydalanuvchi_id")
+  kun             DateTime      @db.Date
+  sorovlar        Int           @default(0)
+  tokenlar        Int           @default(0)
+  foydalanuvchi   Foydalanuvchi @relation(fields: [foydalanuvchiId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([foydalanuvchiId, kun])
+  @@map("ai_sarf")
+}
+
+/// 31-qism #25 (sql/306): feature flag'lar. Ilova SQL bilan o'qiydi (bayroqlar.ts), Prisma modeli — sxema drift tekshiruvi uchun
+model Bayroq {
+  kalit            String   @id
+  yoqilgan         Boolean  @default(false)
+  foiz             Int      @default(0) @db.SmallInt
+  rollar           String[] @default([])
+  foydalanuvchilar BigInt[] @default([])
+  tavsif           String?
+  yangilanganVaqt  DateTime @default(now()) @map("yangilangan_vaqt") @db.Timestamptz(6)
+
+  @@map("bayroqlar")
+}
