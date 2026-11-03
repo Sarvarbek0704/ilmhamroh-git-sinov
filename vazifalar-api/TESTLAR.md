@@ -52,6 +52,8 @@ Backend'ning qiymati — HTTP shartnomasi (status, sarlavha, Problem Details) va
   Jonli Gemini tekshiruvi — alohida (kanon skriptlari, kalit muhitdan).
 - `test/prodakshn.test.ts` — audit jurnali (hash zanjiri, o'zgarmaslik), feature flag'lar (foizli rollout), `/auth/men` da rol.
 - `test/kuzatuv.test.ts`, `test/chidamlilik.test.ts`, `test/cheklov-redis.test.ts` — readiness/startup, `/metrics`, retry/circuit breaker/bulkhead, Redis cheklagichi.
+- `test/breaker-regressiya.test.ts`, `test/nuqsonlar-31.test.ts` — 32-qism: 31 kanonida topilgan nuqsonlarning REGRESSIYA testlari (har modelga alohida breaker — ikki stsenariy;
+  AI umumiy deadline; DEFAULT bo'limdan ko'chirish va fon xatosi metrikasi; `gemini-embedding-2` prefiksi; uzilgan oqim kvotasi). Breaker testi `git bisect run` uchun ham.
 - `test/asinxron.test.ts` — vaqtga bog'liq kod soxta soat bilan (`vi.useFakeTimers`, `advanceTimersByTimeAsync`).
 - `test/shartnoma.test.ts` — OpenAPI snapshot (`docs/openapi-snapshot.json`; ataylab o'zgartirganda `SHARTNOMA_YANGILA=1`) va iste'molchi shartnomasi (frontend kutgan javob shakllari).
 - `npm run test:aralash` — testlar tasodifiy tartibda (bir-biriga bog'liq testlarni topish). CI — `.github/workflows/ci.yml` (qo'lda ishga tushadi; lokal `npm run check` bilan bir xil qadamlar).

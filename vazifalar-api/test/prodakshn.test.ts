@@ -54,10 +54,11 @@ if (typeof baza === "string") {
     await request(app).post(`/v1/admin/foydalanuvchilar/${String(adminId)}/bloklash`).set("Cookie", aziz).expect(403);
     await request(app).post(`/v1/admin/foydalanuvchilar/${String(azizId)}/bloklash`).set("Cookie", admin).expect(204);
     await request(app).post(`/v1/admin/foydalanuvchilar/${String(azizId)}/blokdan-chiqarish`).set("Cookie", admin).expect(204);
-    await request(app).post("/v1/auth/api-kalitlar").set("Cookie", admin).send({ nom: "ci", ruxsatlar: ["vazifalar:oqish"] }).expect(201);
+    const kalit = (await request(app).post("/v1/auth/api-kalitlar").set("Cookie", admin).send({ nom: "ci", ruxsatlar: ["vazifalar:oqish"] }).expect(201)).body as { id: number; kalit: string };
     const j = (await jurnal()).slice(oldin);
     assert.deepEqual(j.map((x) => [x.amal, x.aktyor_id === null ? null : Number(x.aktyor_id), x.obyekt_id]),
-      [["admin.bloklash", adminId, String(azizId)], ["admin.blokdan_chiqarish", adminId, String(azizId)], ["api_kalit.yaratildi", adminId, null]]);
+      [["admin.bloklash", adminId, String(azizId)], ["admin.blokdan_chiqarish", adminId, String(azizId)], ["api_kalit.yaratildi", adminId, String(kalit.id)]]); // 32 #01: avval null edi (31 nuqsoni) — yaratilgan kalit id'si javobdan
+    assert.ok(!JSON.stringify(j).includes(kalit.kalit)); // kalit qiymati jurnalga tushmaydi
     const l = (await request(app).get("/v1/admin/audit").set("Cookie", admin).expect(200)).body as { yozuvlar: { amal: string; hash: string }[] };
     assert.match(l.yozuvlar.at(-1)?.hash ?? "", /^[0-9a-f]{64}$/);
     await request(app).get("/v1/admin/audit").set("Cookie", aziz).expect(401); // bloklash Azizning HAMMA sessiyalarini bekor qilgan (blokdan chiqarish qaytarmaydi)

@@ -17,6 +17,7 @@ import type { IlovaSozlamalari } from "../tokenlar.ts";
 import type { Log } from "../umumiy/log.ts";
 import { SAQLASH } from "../ombor.module.ts";
 import type { Saqlash } from "../ombor-yarat.ts";
+import { fonXatolari } from "../kuzatuv/metrikalar.ts";
 
 export type StatistikaBogliqliklari = { pool: Pool };
 
@@ -49,23 +50,33 @@ export class StatistikaController {
   }
 }
 
-/** Bo'limlarni oldindan yaratish (idempotent). Xato ilovani to'xtatmaydi — DEFAULT bo'lim yozuvni qabul qiladi, log ogohlantiradi */
+/**
+ * Bo'limlarni oldindan yaratish (idempotent). 32 #01 (31 nuqsoni): avval xato `warn` bilan YUTILARDI — DEFAULT bo'limda shu oy qatori bo'lsa bo'lim
+ * hech qachon yaratilmasdi va buni hech kim bilmasdi. Endi: (1) sql/307 — DEFAULT'dagi qatorlar bitta tranzaksiyada yangi bo'limga ko'chiriladi
+ * (bu xato manbaining o'zi yopildi); (2) boshqa har qanday xato — `error` log + `fon_ishlari_xatolari_jami{ish="hodisa-bolimlari"}` metrikasi va
+ * `tayyorla()` xatoni QAYTARADI. Ishga tushish va cron uni ushlaydi (ilova to'xtamaydi — DEFAULT bo'lim yozuvni baribir qabul qiladi).
+ */
 @Injectable()
 export class BolimlarXizmati implements OnApplicationBootstrap {
   constructor(@Inject(STATISTIKA) private readonly b: StatistikaBogliqliklari | null, @Inject(LOG) private readonly log: Log) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.tayyorla();
+    await this.tayyorla().catch(() => undefined); // log va metrika — tayyorla() ichida
   }
 
   @Cron("0 3 * * *", { name: "hodisa-bolimlari", timeZone: "UTC" })
+  async cron(): Promise<void> {
+    await this.tayyorla().catch(() => undefined);
+  }
+
   async tayyorla(): Promise<string[]> {
     if (this.b === null) return [];
     try {
       return (await this.b.pool.query<{ nom: string }>("SELECT hodisa_bolimlari_tayyorla(2) AS nom")).rows.map((r) => r.nom);
     } catch (err) {
-      this.log.warn({ err }, "hodisa bo'limlari yaratilmadi (DEFAULT bo'limga yoziladi)");
-      return [];
+      fonXatolari.inc({ ish: "hodisa-bolimlari" });
+      this.log.error({ err, ish: "hodisa-bolimlari" }, "hodisa bo'limlari yaratilmadi — yangi hodisalar DEFAULT bo'limga tushadi");
+      throw err;
     }
   }
 }

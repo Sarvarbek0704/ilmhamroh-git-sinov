@@ -63,7 +63,10 @@ export function mcpServerYarat(api: ApiChaqir, versiya = "4.0.0"): McpServer {
     title: "Vazifani qadamlarga bo'lish (AI)",
     description: "Vazifa uchun 2–8 qadam TAKLIF qiladi (saqlamaydi). AI kunlik kvotasidan sarflaydi.",
     inputSchema: { id: z.int().positive() },
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    // 32 #01 (31 nuqsoni): avval readOnlyHint: true edi. Vazifa o'zgarmaydi, lekin MUHIT o'zgaradi: kunlik kvota sarflanadi, hodisa yoziladi, tashqi LLM chaqiriladi.
+    // MCP spetsifikatsiyasi: readOnlyHint — "muhitni o'zgartirmaydi"; mijoz (agent) read-only vositani so'ramasdan qayta-qayta chaqirishi mumkin — kvota tugaydi.
+    // destructiveHint: false (hech narsa o'chmaydi), idempotentHint: false (har chaqiruv kvotadan yeydi; kesh bo'lsa — yo'q, lekin kafolat emas)
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   }, async ({ id }) => natija(await api("POST", `/v1/vazifalar/${String(id)}/qadamlar`)));
 
   s.registerResource("vazifa", new ResourceTemplate("vazifa://{id}", { list: undefined }), { title: "Vazifa", mimeType: "application/json" }, async (uri, { id }) => {

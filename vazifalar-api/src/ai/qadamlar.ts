@@ -152,10 +152,13 @@ export class QadamlarXizmati {
     }
     const kvota = this.d.nazorat?.kvota;
     await kvota?.band(egasi);
-    let bufer = "", berildi = 0, tugadi = false;
+    const sorov = this.#sorov(v, signal);
+    let bufer = "", berildi = 0, tugadi = false, bolaklar = 0;
+    let provayderXatosi = false;
     try {
-      for await (const b of this.d.provayder.oqim(this.#sorov(v, signal))) {
+      for await (const b of this.d.provayder.oqim(sorov)) {
         if (b.tur === "matn") {
+          bolaklar++;
           bufer += b.matn;
           for (const x of toliqQadamlar(bufer, berildi)) {
             const q = Qadam.safeParse(x);
@@ -172,8 +175,23 @@ export class QadamlarXizmati {
           yield { tur: "tugadi", natija: n };
         }
       }
+    } catch (x) {
+      provayderXatosi = x instanceof LlmXatosi && signal?.aborted !== true;
+      throw x;
     } finally {
-      if (!tugadi) await kvota?.qaytar(egasi); // xato yoki mijoz uzildi — kvota qaytariladi
+      // 32 #01 (31 nuqsoni): avval HAR QANDAY tugallanmagan oqimda kvota qaytarilardi — mijoz birinchi qadamdan keyin uzib, LLM'dan cheksiz foydalana olardi.
+      // Endi qaytariladi FAQAT provayder hech narsa bermasdan yiqilganda (foydalanuvchi aybi yo'q). Mijoz uzsa yoki bo'laklar kelgan bo'lsa — so'rov hisoblanadi,
+      // tokenlar TAXMINIY yoziladi (provayder yakuniy usage'ni faqat oxirida beradi): ~4 belgi = 1 token (o'zbekcha matnda haqiqiysi ~1.7× ko'p — 31/#13).
+      if (!tugadi) {
+        if (bolaklar === 0 && provayderXatosi) await kvota?.qaytar(egasi);
+        else await kvota?.tokenQosh(egasi, taxminiyToken(sorov, bufer));
+      }
     }
   }
+}
+
+/** usage'siz (uzilgan oqim) token taxmini: kirish (tizim + xabarlar) + chiqgan matn, 4 belgi ≈ 1 token */
+export function taxminiyToken(s: LlmSorov, chiqish: string): number {
+  const kirish = s.tizim.length + s.xabarlar.reduce((n, x) => n + x.matn.length, 0);
+  return Math.ceil(kirish / 4) + Math.ceil(chiqish.length / 4);
 }

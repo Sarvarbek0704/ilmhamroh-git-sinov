@@ -14,8 +14,9 @@ export class ZaxiraliProvayder implements LlmProvayder {
     this.model = asosiy.model;
   }
 
+  /** 32 #01: asosiy modelning breaker'i OCHIQ bo'lsa ham zaxiraga o'tiladi (`ochiq` qayta urinish uchun vaqtinchalik emas, lekin zaxira uchun — aynan shu holat) */
   #otsinmi(x: unknown, s: LlmSorov): boolean {
-    return x instanceof LlmXatosi && x.vaqtinchalik && s.signal?.aborted !== true && (s.model ?? this.model) !== this.zaxiraModel;
+    return x instanceof LlmXatosi && (x.vaqtinchalik || x.tur === "ochiq") && s.signal?.aborted !== true && (s.model ?? this.model) !== this.zaxiraModel;
   }
 
   async yarat(s: LlmSorov): Promise<LlmJavob> {

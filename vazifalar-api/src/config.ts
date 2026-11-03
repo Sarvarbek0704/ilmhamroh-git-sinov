@@ -154,6 +154,8 @@ const EnvSxemasi = z
     /** bitta LLM chaqiruvi chegarasi (ms) va qayta urinishlar (#29) */
     AI_TIMEOUT_MS: Butun(20_000).pipe(z.number().min(1000).max(120_000)),
     AI_QAYTA_URINISH: Butun(2).pipe(z.number().min(0).max(5)),
+    /** 32 #01: bitta AI so'rovining UMUMIY muddati — retry, backoff va zaxira model shu ichida (asoslash — ai.module.ts AI_DEADLINE_SUKUT) */
+    AI_DEADLINE_MS: Butun(25_000).pipe(z.number().min(1000).max(120_000)),
     /** #19: foydalanuvchi kunlik kvotasi (Asia/Tashkent kuni) — so'rovlar va tokenlar */
     AI_KUNLIK_SOROV: Butun(30).pipe(z.number().min(1).max(10_000)),
     AI_KUNLIK_TOKEN: Butun(60_000).pipe(z.number().min(1000).max(10_000_000)),

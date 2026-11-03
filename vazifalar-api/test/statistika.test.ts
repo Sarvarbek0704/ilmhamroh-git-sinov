@@ -45,7 +45,7 @@ if (typeof baza === "string") {
   });
 
   test("bo'limlar: tayyorla() idempotent; tozala() faqat muddati o'tganini DETACH + DROP qiladi; bo'limsiz vaqt — DEFAULT bo'limga", async () => {
-    const xizmat = new BolimlarXizmati({ pool }, { warn: () => undefined } as never);
+    const xizmat = new BolimlarXizmati({ pool }, { warn: () => undefined, error: () => undefined } as never);
     const a = await xizmat.tayyorla();
     const b = await xizmat.tayyorla();
     assert.equal(a.length, 3);
