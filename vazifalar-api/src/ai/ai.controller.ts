@@ -45,6 +45,21 @@ function uzilishSignali(req: Request, res: Response): AbortSignal {
   return a.signal;
 }
 
+/**
+ * 32 #01 (31 nuqsoni): mijoz uzilishi + UMUMIY deadline (AI_DEADLINE_MS). Bu signal provayderga, retry kutishiga va zaxira modelga boradi —
+ * deadline tugasa butun zanjir to'xtaydi. `mijoz` alohida qaytariladi: "mijoz ketdi" (javob yozilmaydi) va "vaqt tugadi" (504) — har xil holat.
+ */
+function sorovSignali(req: Request, res: Response, deadlineMs: number): { mijoz: AbortSignal; signal: AbortSignal } {
+  const mijoz = uzilishSignali(req, res);
+  return { mijoz, signal: AbortSignal.any([mijoz, AbortSignal.timeout(deadlineMs)]) };
+}
+
+/** deadline tugagan bo'lsa — qaysi qatlam qanday xato bergan bo'lmasin (TimeoutError, AbortError, retry kutishi) — bitta `timeout` (504) */
+function deadlinedan(x: unknown, s: { mijoz: AbortSignal; signal: AbortSignal }): unknown {
+  if (!s.mijoz.aborted && s.signal.aborted && !(x instanceof LlmXatosi && x.tur === "timeout")) return new LlmXatosi("timeout", "AI so'rovining umumiy muddati (AI_DEADLINE_MS) tugadi");
+  return x;
+}
+
 @Controller({ path: "vazifalar", version: "1" })
 @Cheklov(API_CHEKLOVI)
 export class AiVazifaController {
@@ -54,7 +69,8 @@ export class AiVazifaController {
   @HttpCode(200)
   async qadamlar(@Egasi() egasi: number, @Param({ schema: IdSxemasi }) { id }: { id: number }, @Req() req: Request, @Res() res: Response): Promise<void> {
     await bayroqKerak(this.bayroqlar, "ai-qadamlar", req); // #25: feature flag
-    const signal = uzilishSignali(req, res);
+    const ss = sorovSignali(req, res, this.ai.deadlineMs);
+    const { signal } = ss;
     const log = joriyLog(this.ai.log);
     if (!(req.headers.accept ?? "").includes("text/event-stream")) {
       try {
@@ -62,7 +78,7 @@ export class AiVazifaController {
         log.info({ ai: { amal: "qadamlar", model: n.model, tokenlar: n.tokenlar, urinishlar: n.urinishlar, kesh: n.kesh } }, "ai javobi");
         res.json(n);
       } catch (x) {
-        throw aiXatosi(x);
+        throw aiXatosi(deadlinedan(x, ss));
       }
       return;
     }
@@ -80,8 +96,8 @@ export class AiVazifaController {
         }
       }
     } catch (x) {
-      if (signal.aborted) { log.info({ ai: { amal: "qadamlar-oqim", uzildi: true } }, "mijoz uzildi — LLM so'rovi bekor qilindi"); return; }
-      const e = aiXatosi(x);
+      if (ss.mijoz.aborted) { log.info({ ai: { amal: "qadamlar-oqim", uzildi: true } }, "mijoz uzildi — LLM so'rovi bekor qilindi"); return; }
+      const e = aiXatosi(deadlinedan(x, ss));
       if (e instanceof IlovaXatosi) yoz("xato", problemYasa(e.holat, { kod: e.kod, sarlavha: e.sarlavha, detail: e.message }));
       else { log.error({ err: e }, "ai oqimi: kutilmagan xato"); yoz("xato", problemYasa(500, { detail: "Kutilmagan xato" })); }
     } finally {
@@ -106,14 +122,15 @@ export class QidiruvController {
   async qidir(@Egasi() egasi: number, @Query() q: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<object> {
     await bayroqKerak(this.bayroqlar, "ai-yordamchi", req);
     const s = tekshir(QidiruvSorovi, q, "query");
+    const ss = sorovSignali(req, res, this.ai.deadlineMs);
     try {
       const topilgan = s.rejim === "semantik"
-        ? await this.ai.qidiruv.semantik(egasi, s.q, s.limit, uzilishSignali(req, res))
-        : await this.ai.qidiruv.gibrid(egasi, s.q, s.limit, uzilishSignali(req, res));
+        ? await this.ai.qidiruv.semantik(egasi, s.q, s.limit, ss.signal)
+        : await this.ai.qidiruv.gibrid(egasi, s.q, s.limit, ss.signal);
       await aiHodisa(this.ai.nazorat.pool, egasi, "semantik_qidiruv", null, { rejim: s.rejim, natijalar: topilgan.length });
       return { rejim: s.rejim, vazifalar: topilgan.map((t) => ({ ...t, ball: Math.round(t.ball * 10_000) / 10_000 })) };
     } catch (x) {
-      throw aiXatosi(x);
+      throw aiXatosi(deadlinedan(x, ss));
     }
   }
 }
@@ -136,12 +153,13 @@ export class YordamchiController {
   @JsonTana()
   async savol(@Egasi() egasi: number, @Body({ schema: SavolSxemasi }) body: { savol: string }, @Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<object> {
     await bayroqKerak(this.bayroqlar, "ai-yordamchi", req);
+    const ss = sorovSignali(req, res, this.ai.deadlineMs);
     try {
-      const n = await this.ai.yordamchi.savol(egasi, body.savol, uzilishSignali(req, res));
+      const n = await this.ai.yordamchi.savol(egasi, body.savol, ss.signal);
       joriyLog(this.ai.log).info({ ai: { amal: "yordamchi", model: n.model, tokenlar: n.tokenlar, manbalar: n.manbalar.length } }, "ai javobi");
       return n;
     } catch (x) {
-      throw aiXatosi(x);
+      throw aiXatosi(deadlinedan(x, ss));
     }
   }
 }

@@ -25,6 +25,13 @@ export async function auditYoz(pool: AuthBogliqliklari["pool"], y: { aktyor: num
   return Number(rows[0]?.id);
 }
 
+/** handler javobidagi `id` (son yoki satr) → satr; boshqa hollarda undefined */
+export function javobIdsi(javob: unknown): string | undefined {
+  if (typeof javob !== "object" || javob === null || !("id" in javob)) return undefined;
+  const id = javob.id;
+  return typeof id === "number" || typeof id === "string" ? String(id) : undefined;
+}
+
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
   constructor(private readonly reflector: Reflector, @Inject(AUTH) private readonly auth: AuthBogliqliklari | null, @Inject(LOG) private readonly log: Log) {}
@@ -38,7 +45,9 @@ export class AuditInterceptor implements NestInterceptor {
     const aktyor = req.egasi ?? null;
     return keyingi.handle().pipe(mergeMap((javob: unknown) => from((async () => {
       try {
-        const id = req.params["id"] ?? req.params["kalit"]; // obyekt identifikatori — yo'l parametri (:id yoki :kalit)
+        // obyekt identifikatori — yo'l parametri (:id yoki :kalit); 32 #01 (31 nuqsoni): YARATISH yo'llarida parametr yo'q — javobdagi `id` olinadi
+        // (avval `api_kalit.yaratildi` da obyekt_id null edi: qaysi kalit yaratilgani jurnaldan topilmasdi). Faqat id — kalit qiymati jurnalga TUSHMAYDI
+        const id = req.params["id"] ?? req.params["kalit"] ?? javobIdsi(javob);
         await auditYoz(pool, { aktyor, amal: b.amal, obyekt: b.obyekt ?? null, obyektId: typeof id === "string" ? id : null, sorovId: req.sorovId,
           tafsilot: { metod: req.method, yol: req.originalUrl.split("?")[0] ?? "" } });
       } catch (err) {

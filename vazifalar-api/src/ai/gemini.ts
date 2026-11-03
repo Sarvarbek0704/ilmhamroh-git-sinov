@@ -102,11 +102,14 @@ export class GeminiProvayder implements LlmProvayder {
   async embedding(matnlar: string[], tur: EmbeddingTuri, signal?: AbortSignal): Promise<number[][]> {
     if (matnlar.length === 0) return [];
     const model = `models/${this.#s.embeddingModel}`;
+    const prefiks = prefiksliModel(this.#s.embeddingModel);
     const taskType = tur === "hujjat" ? "RETRIEVAL_DOCUMENT" : "RETRIEVAL_QUERY";
     const s = chegaraliSignal(this.#s.timeoutMs, signal);
     try {
       const r = await this.#post(`${model}:batchEmbedContents`, {
-        requests: matnlar.map((text) => ({ model, content: { parts: [{ text }] }, taskType, outputDimensionality: this.#s.embeddingOlcham })),
+        requests: matnlar.map((text) => prefiks
+          ? { model, content: { parts: [{ text: embeddingMatni(text, tur) }] }, outputDimensionality: this.#s.embeddingOlcham }
+          : { model, content: { parts: [{ text }] }, taskType, outputDimensionality: this.#s.embeddingOlcham }),
       }, s);
       const j = (await r.json()) as { embeddings?: { values?: number[] }[] };
       const v = (j.embeddings ?? []).map((e) => e.values ?? []);
@@ -116,6 +119,25 @@ export class GeminiProvayder implements LlmProvayder {
       throw xatogaAylantir(x, signal);
     }
   }
+}
+
+/**
+ * 32 #01 (31 nuqsoni): `gemini-embedding-2` `taskType` maydonini QO'LLAMAYDI — vazifa matnning o'zida, prefiks bilan beriladi
+ * (Gemini API hujjati, "Embeddings", 2026-11-03 holatiga; 31-qism kuchaytiruvchisi va bosh muharrir tekshirgan). 31 kanoni `taskType` yuborgan — u e'tiborsiz
+ * qolgan, so'rov va hujjat vektorlari bir xil "turda" hisoblangan. Eski modellar (`gemini-embedding-001`) — `taskType` bilan qoladi.
+ * Sifat ta'siri QAYTA O'LCHANMAGAN (32-qismda AI API'ga so'rov yo'q) — faqat so'rov shakli soxta fetch bilan tekshirilgan.
+ */
+export function prefiksliModel(model: string): boolean {
+  return model.startsWith("gemini-embedding-2");
+}
+
+export function embeddingMatni(matn: string, tur: EmbeddingTuri): string {
+  return tur === "sorov" ? `task: search result | query: ${matn}` : `title: none | text: ${matn}`;
+}
+
+/** bazadagi `vazifa_embeddinglar.model` yorlig'i: matn shakli o'zgargani uchun eski (prefikssiz) vektorlar dangasa QAYTA hisoblanadi (Qidiruv model farqini ko'radi) */
+export function embeddingYorligi(model: string): string {
+  return prefiksliModel(model) ? `${model}+prefiks` : model;
 }
 
 /** outputDimensionality < to'liq o'lcham bo'lsa Gemini vektori normallashmagan qaytadi (hujjat) — cosine uchun birlik uzunlikka keltiramiz */

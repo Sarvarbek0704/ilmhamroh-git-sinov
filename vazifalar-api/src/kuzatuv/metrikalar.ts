@@ -5,6 +5,12 @@
 import type { NextFunction, Request, Response } from "express";
 import { Counter, Histogram, Registry, collectDefaultMetrics } from "prom-client";
 
+/**
+ * 32 #01 (31 nuqsoni): fon ishlari xatolari — log bilan birga METRIKA (alert qoidasi shu hisoblagichga yoziladi: `increase(fon_ishlari_xatolari_jami[1h]) > 0`).
+ * Modul darajasida (DI'siz): fon xizmatlari Nest konteyneridan tashqarida ham (testda) ishlatiladi; har Metrikalar reestri uni o'ziga qo'shadi.
+ */
+export const fonXatolari = new Counter({ name: "fon_ishlari_xatolari_jami", help: "Fon ishlari (cron) xatolari", labelNames: ["ish"] as const, registers: [] });
+
 export class Metrikalar {
   readonly reestr = new Registry();
   readonly sorovlar = new Counter({ name: "http_sorovlar_jami", help: "HTTP so'rovlar soni", labelNames: ["metod", "yol", "status"] as const, registers: [this.reestr] });
@@ -15,6 +21,7 @@ export class Metrikalar {
 
   constructor(standart = true) {
     this.reestr.setDefaultLabels({ ilova: "vazifalar-api" });
+    this.reestr.registerMetric(fonXatolari);
     if (standart) collectDefaultMetrics({ register: this.reestr });
   }
 

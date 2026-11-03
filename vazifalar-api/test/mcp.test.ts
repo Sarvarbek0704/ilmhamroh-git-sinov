@@ -48,6 +48,8 @@ if (typeof baza === "string") {
       const { tools } = await mijoz.listTools();
       assert.deepEqual(tools.map((t) => t.name).sort(), ["vazifa_bajarildi", "vazifa_qosh", "vazifalar_royxati", "vazifani_qadamlarga_bol"]);
       assert.equal(tools.find((t) => t.name === "vazifalar_royxati")?.annotations?.readOnlyHint, true);
+      // 32 #01 (31 nuqsoni): AI vositasi kvota sarflaydi va hodisa yozadi — "faqat o'qish" EMAS
+      assert.deepEqual(tools.find((t) => t.name === "vazifani_qadamlarga_bol")?.annotations, { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true });
       assert.equal((tools.find((t) => t.name === "vazifa_qosh")?.inputSchema.properties as Record<string, { maxLength?: number }>)["matn"]?.maxLength, 100);
 
       const q = await mijoz.callTool({ name: "vazifa_qosh", arguments: { matn: "Non olish #uy" } }) as Matnli;
