@@ -1,6 +1,6 @@
 {
   "name": "vazifalar-api",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "private": true,
   "description": "vazifalar ilovasining backend'i — REST API (v2: NestJS)",
   "license": "MIT",

@@ -126,6 +126,7 @@ AI yo'llari faqat `AI_PROVAYDER` sozlanganda (aks holda 404). Kunlik kvota tugas
 Har xato javobida `sorovId` (= `X-Request-Id` sarlavhasi) — murojaatda shuni ayting.
 
 ## O'zgarishlar tarixi (changelog)
+- 4.0.1 dan boshlab — [CHANGELOG.md](CHANGELOG.md) (conventional commit'lardan hosil qilinadi). Quyidagilar — eski qo'lda yozilgan qaydlar.
 - **v4.0.0-alfa** (31-qism): `/metrics`, `/health/startup`, graceful drain, Problem `title` o'zbekcha, AI chidamliligi (retry, circuit breaker, bulkhead), Redis tezlik cheklagichi; vazifa hodisalari va statistika, saqlash muddati (30 kun / 180 kun / 13 oy), hisobni o'chirish; `GET /v1/auth/men` da `rol`; audit jurnali, feature flag'lar; AI: qadamlarga bo'lish, semantik qidiruv, yordamchi (RAG), kunlik kvota va kesh; MCP server.
 
 - **v2.1.0** (30-qism B va C): 28-qism auth (sessiya, CSRF, RBAC + RLS, API kalitlar, OIDC, 2FA/passkey) va 29-qism integratsiyalari (fayllar, bildirishnomalar,
