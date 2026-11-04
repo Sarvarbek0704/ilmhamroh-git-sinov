@@ -1,0 +1,10 @@
+# CODEOWNERS — sinov repo ildizi (monorepo: sayt/ — 07-qism portfolio, vazifalar-api/ — 25–32-qism backend).
+# GitHub FAQAT ildizdagi (yoki .github/, docs/) CODEOWNERS ni o'qiydi — vazifalar-api/.github/CODEOWNERS bu repoda ishlamaydi (loyiha alohida repo bo'lganda ishlaydi).
+# Oxirgi mos qator yutadi. Jamoada har papka — boshqa odam yoki @tashkilot/jamoa.
+
+*                                     @Sarvarbek0704
+/sayt/                                @Sarvarbek0704
+/vazifalar-api/src/auth/              @Sarvarbek0704
+/vazifalar-api/src/ai/                @Sarvarbek0704
+/vazifalar-api/prisma/migrations/     @Sarvarbek0704
+/.github/                             @Sarvarbek0704
