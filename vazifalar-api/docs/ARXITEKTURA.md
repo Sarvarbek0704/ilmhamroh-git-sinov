@@ -84,7 +84,7 @@ Xato bo'lsa — hamma joyda bitta shakl: Problem Details (`application/problem+j
 ## 5. Lokal ishga tushirish (30 daqiqada)
 
 1. Node 24, Docker. `npm ci` (postinstall — `prisma generate`).
-2. Postgres 18 + pgvector va Redis — [README](../README.md) dagi `docker run` buyruqlari (faqat `127.0.0.1`).
+2. Postgres 18 + pgvector va Redis — [README](../README.md#tez-boshlash) dagi `docker run` buyruqlari (faqat `127.0.0.1`).
 3. `cp .env.example .env` → `SAQLASH=postgres`, `DATABASE_URL`, `REDIS_URL`.
 4. `npm run db:migrate && npm run db:seed` → `npm run start:dev` → `http://127.0.0.1:3000/docs`.
 5. `npm run check` — tip, lint, test, build. Yashil bo'lmasa — PR ochilmaydi.
@@ -93,7 +93,7 @@ Xato bo'lsa — hamma joyda bitta shakl: Problem Details (`application/problem+j
 
 1. Issue'lardan `good first issue` yorlig'idagisini oling, issue'da "men olaman" deb yozing (ikki kishi bir ishni qilmasin).
 2. Avval **o'qing**: issue'da tilga olingan fayl va uning testi. `git log -p --follow <fayl>` — fayl qanday o'zgargan va nega (commit xabarlari).
-3. Branch: `git switch -c fix/<qisqa-nom>` (`fix/`, `feat/`, `docs/` — commit turi bilan bir xil).
+3. Branch: `git switch -c fix/<qisqa-nom>` (`fix/`, `feat/`, `docs/` — commit turi bilan bir xil; to'liq qoidalar — [CONTRIBUTING.md](../CONTRIBUTING.md)).
 4. Avval yiqiladigan test, keyin kod. `npm run check`.
 5. Kichik PR (≈ 200 qatordan kam), shablon bo'yicha tavsif. Savol tug'ilsa — PR'ni draft qilib oching va so'rang.
 
