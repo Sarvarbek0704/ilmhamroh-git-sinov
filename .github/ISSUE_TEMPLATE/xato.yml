@@ -1,0 +1,39 @@
+name: Xato haqida xabar
+description: Nimadir kutilganidek ishlamayapti
+title: "fix: "
+labels: ["tur: xato", "holat: saralash"]
+body:
+  - type: markdown
+    attributes:
+      value: "Xavfsizlik zaifligi bo'lsa — bu yerga EMAS, SECURITY.md dagi yo'l bilan."
+  - type: textarea
+    id: qadamlar
+    attributes:
+      label: Takrorlash qadamlari
+      description: Boshqa odam xuddi shu natijani ko'rishi uchun — so'rov, ma'lumot, buyruq.
+      placeholder: |
+        1. POST /v1/vazifalar {"matn": "..."}
+        2. GET /v1/vazifalar?…
+    validations:
+      required: true
+  - type: textarea
+    id: kutilgan
+    attributes:
+      label: Kutilgan natija
+    validations:
+      required: true
+  - type: textarea
+    id: haqiqiy
+    attributes:
+      label: Haqiqiy natija
+      description: Javob kodi, Problem Details tanasi, log parchasi (sorovId bilan; sir va shaxsiy ma'lumotsiz).
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: versiya
+    attributes:
+      label: Versiya yoki commit
+      placeholder: "4.0.1 yoki a1b2c3d"
+    validations:
+      required: true

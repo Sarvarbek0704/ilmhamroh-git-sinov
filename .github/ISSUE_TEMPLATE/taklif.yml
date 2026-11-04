@@ -1,0 +1,32 @@
+name: Xususiyat taklifi
+description: Yangi imkoniyat yoki mavjudini yaxshilash
+title: "feat: "
+labels: ["tur: xususiyat", "holat: saralash"]
+body:
+  - type: textarea
+    id: muammo
+    attributes:
+      label: Qaysi muammo hal bo'ladi?
+      description: Yechimdan oldin muammo. Kim, qachon, nima uchun qiynaladi?
+    validations:
+      required: true
+  - type: textarea
+    id: hikoya
+    attributes:
+      label: Foydalanuvchi hikoyasi va qabul mezonlari
+      value: |
+        **Hikoya:** … sifatida men … xohlayman, toki …
+
+        **Qabul mezonlari:**
+        - [ ] Berilgan …, qachonki …, unda …
+    validations:
+      required: true
+  - type: textarea
+    id: muqobil
+    attributes:
+      label: Ko'rib chiqilgan muqobillar
+  - type: dropdown
+    id: hajm
+    attributes:
+      label: Taxminiy hajm
+      options: ["S — bir kun", "M — 2–3 kun", "L — hafta (bo'laklash kerak)"]
