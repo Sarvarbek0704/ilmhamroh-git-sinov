@@ -1,0 +1,16 @@
+# CODEOWNERS — 32-qism #07 (G-45): qaysi papkaga kim javobgar. PR shu fayllarga tegsa, egasi avtomatik review'ga chaqiriladi;
+# branch himoyasida "Require review from Code Owners" yoqilsa — uning tasdig'isiz merge bo'lmaydi.
+# Qoidalar: pastdagi mos qator ustun (oxirgi moslik yutadi); egasi — GitHub foydalanuvchisi (@login) yoki jamoa (@tashkilot/jamoa), yozish huquqi bilan.
+# Kurs sinov reposida bitta egasi bor — jamoada har qator boshqa odam/jamoa bo'ladi (pastdagi izohlar — namuna).
+
+*                       @Sarvarbek0704
+
+# xavfsizlik va ma'lumotlar — eng ehtiyotkor review
+/src/auth/              @Sarvarbek0704
+/prisma/migrations/     @Sarvarbek0704
+
+# AI qatlami (jamoada: @tashkilot/ai)
+/src/ai/                @Sarvarbek0704
+
+# CI va repo sozlamalari — o'zgarishi butun jamoaga ta'sir qiladi
+/.github/               @Sarvarbek0704
