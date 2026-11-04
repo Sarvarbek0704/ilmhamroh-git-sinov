@@ -1,3 +1,8 @@
+> [!NOTE]
+> **IlmHamroh kursi uchun sinov repo.** Haqiqiy loyiha emas: kurs darslaridagi Git va GitHub amallari shu yerda sinalgan.
+> `sayt/` — 07-qism (Git va GitHub) portfolio namunasi; `vazifalar-api/` — 25–32-qism backend loyihasi (32-qism: PR, review, CODEOWNERS,
+> ruleset, issue va label'lar). Actions o'chirilgan, repo arxivlangan (faqat o'qish).
+
 # Ismingiz — portfolio
 
 Shaxsiy sayt: HTML va CSS bilan qurilgan, GitHub Pages'da
@@ -38,7 +43,8 @@ Sayt fayllari `sayt/` papkasida.
 
 - [x] HTML va CSS (04–06-qismlar)
 - [x] Git va GitHub (07-qism)
-- [ ] JavaScript (09-qism)
+- [x] JavaScript (09-qism)
+- [x] Professional Git va jamoada ishlash (32-qism) — `vazifalar-api/`
 
 ## Litsenziya
 
