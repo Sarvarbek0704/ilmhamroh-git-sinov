@@ -54,3 +54,7 @@ Loyiha tili — o'zbekcha. Begona loyihaga hissa qo'shsangiz — o'sha loyiha ti
 
 Issue oching ("Xato haqida xabar" shabloni — `.github/ISSUE_TEMPLATE/`): qadamlar (takrorlash uchun), kutilgan va haqiqiy natija, versiya (`package.json` yoki commit), log parchasi (sirlarsiz). Xavfsizlik zaifligi — **ochiq issue EMAS**: [SECURITY.md](SECURITY.md).
 
+
+## Litsenziya
+
+Hissa qo'shganingiz loyiha litsenziyasi (MIT, [LICENSE](LICENSE)) ostida tarqatilishiga rozilik bildiradi (inbound = outbound). Begona koddan nusxa olsangiz — uning litsenziyasi MIT bilan mos bo'lsin (MIT, BSD, Apache-2.0 — ha; GPL/AGPL kodini qo'shish butun loyihaning litsenziya shartlarini o'zgartiradi — avval issue'da muhokama).

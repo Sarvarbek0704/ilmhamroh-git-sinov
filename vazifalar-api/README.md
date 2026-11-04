@@ -54,4 +54,4 @@ npm run start:dev                        # http://127.0.0.1:3000/docs — Swagge
 
 ## Litsenziya
 
-MIT.
+MIT — [LICENSE](LICENSE).
